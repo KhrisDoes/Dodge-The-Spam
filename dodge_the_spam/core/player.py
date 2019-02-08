@@ -7,18 +7,23 @@ class Player(pygame.Rect):
 
         super().__init__(x, y, width, height)
 
-        self.xSpeed = 1
-        self.ySpeed = 1
+        self.xSpeed = 360
+        self.ySpeed = 200
+
+        self.moving_left = False
+        self.moving_right = False
 
 
-    def move_left(self):
-        self.x -= 1
 
-    def move_right(self):
-        self.x += 1
+
+    def move_left(self, timedelta):
+        self.x -= self.xSpeed * timedelta
+
+    def move_right(self, timedelta):
+        self.x += self.xSpeed * timedelta
 
     def jump(self):
-        self.y -= 1
+        self.y -= self.ySpeed
 
 
     def gravity(self):
