@@ -2,6 +2,8 @@ import pygame, os
 from pygame.locals import *
 from pygame.compat import geterror
 import player
+import platform
+import random
 
 
 main_dir = os.path.split(os.path.abspath(__file__))[0]
@@ -14,9 +16,16 @@ class Game:
     def __init__(self, width, height):
         self.WIDTH = width
         self.HEIGHT = height
+        self.timedelta = 0
+        self.counting_seconds = 0
+        self.start_time = 0
+        self.counting_time = 0
+
+        # self.PLAYER_IMAGE = pygame.image.load('dodge_the_spam/resources/player_icon.png').convert()
 
         pygame.init()
         self.running = True
+        self.basic_font = pygame.font.SysFont(None, 32)
 
         self.clock = pygame.time.Clock()
 
@@ -29,28 +38,71 @@ class Game:
 
         self.screen.blit(self.background, (0,0))
 
+        self.platforms = []
+        for i in range(10):
+            self.platforms.append(platform.Platform(random.randint(0, self.WIDTH), random.randint(0, self.HEIGHT), 50, 50))
 
 
-    # TODO: smooth movement
+
+    def move_left(self):
+        self.player.x -= self.player.xSpeed * self.timedelta
+
+    def move_right(self):
+        self.player.x += self.player.xSpeed * self.timedelta
+
+    def jump(self):
+        self.player.y -= self.player.ySpeed * 2 * self.timedelta
 
 
-    def on_render(self, timedelta):
+    def gravity(self, rect):
+        rect.y += rect.ySpeed * self.timedelta
 
+
+    def update_player_position(self):
         if self.player.moving_left:
-            self.player.move_left(timedelta)
+            self.move_left()
         elif self.player.moving_right:
-            self.player.move_right(timedelta)
+            self.move_right()
 
-        self.background.fill((255,255,255))
-        self.screen.blit(self.background, (0,0))
+        if self.player.jumping:
+            self.jump()
+
+        self.gravity(self.player)
+
+
+
+
+
+    def on_collision(self, platform):
+        if self.player.colliderect(platform):
+            print("Collision!")
+
+    def on_render(self):
+
+        self.background.fill((255, 255, 255))
+
+        counting_string = "%s" % (self.counting_seconds)
+
+        score = self.basic_font.render(counting_string, True, (255, 0, 0), (255,255,255))
+
+
+        self.update_player_position()
+
+        for obstacle in self.platforms:
+            obstacle.gravity(self.timedelta)
+            self.reset(obstacle)
+            pygame.draw.rect(self.background, (30, 40, 50), obstacle)
+
 
 
         pygame.draw.rect(self.background, (30, 40, 50), self.player)
         self.screen.blit(self.background, (0,0))
+        self.screen.blit(score, (0,0))
 
         pygame.display.update()
 
     def on_event(self, event):
+
         if event.type == QUIT:
             self.running = False
         elif event.type == KEYDOWN:
@@ -58,22 +110,27 @@ class Game:
                 self.player.moving_left = True
             elif event.key == K_RIGHT:
                 self.player.moving_right = True
-            elif event.key == K_SPACE:
-                self.player.jump()
+            if event.key == K_SPACE:
+                self.player.jumping = True
         elif event.type == KEYUP:
             if event.key == K_LEFT:
                 self.player.moving_left = False
             elif event.key == K_RIGHT:
                 self.player.moving_right = False
+            if event.key == K_SPACE:
+                self.player.jumping = False
 
 
-        pass
+
 
     def on_loop(self):
         pass
 
-    def on_collision(self):
-        print("Collision detected!!")
+
+    def reset(self, platform):
+        if platform.y > self.HEIGHT:
+            platform.y = -15
+            platform.x = random.randint(0, self.WIDTH)
 
     # functions to create our resources
     def load_image(self, name, colorkey=None):
@@ -93,13 +150,23 @@ class Game:
 
     def main(self):
 
+        self.start_time = pygame.time.get_ticks()
 
         while self.running:
-            timedelta = self.clock.tick(60)
-            timedelta /= 1000
+            self.counting_time = pygame.time.get_ticks() - self.start_time
+            self.timedelta = self.clock.tick(60)
+            self.timedelta /= 1000
+
+            # Check for collisions
+            for platform in self.platforms:
+                self.on_collision(platform)
+
+            # Handle events
             for event in pygame.event.get():
                 self.on_event(event)
-            self.on_render(timedelta)
+
+            self.counting_seconds = str((self.counting_time % 60000) / 1000).zfill(2)
+            self.on_render()
 
         pygame.quit()
 

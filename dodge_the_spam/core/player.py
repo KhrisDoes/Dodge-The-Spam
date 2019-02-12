@@ -12,21 +12,11 @@ class Player(pygame.Rect):
 
         self.moving_left = False
         self.moving_right = False
+        self.jumping = False
 
 
 
 
-    def move_left(self, timedelta):
-        self.x -= self.xSpeed * timedelta
 
-    def move_right(self, timedelta):
-        self.x += self.xSpeed * timedelta
-
-    def jump(self):
-        self.y -= self.ySpeed
-
-
-    def gravity(self):
-        pass
 
 
