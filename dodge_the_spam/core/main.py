@@ -6,8 +6,8 @@ import platform
 import random
 
 
-main_dir = os.path.split(os.path.abspath(__file__))[0]
-data_dir = os.path.join(main_dir, 'data')
+core_dir = os.path.split(os.path.abspath(__file__))[0]
+resources_dir = os.path.join(core_dir, 'resources')
 
 class Game:
 
@@ -21,7 +21,9 @@ class Game:
         self.start_time = 0
         self.counting_time = 0
 
-        # self.PLAYER_IMAGE = pygame.image.load('dodge_the_spam/resources/player_icon.png').convert()
+        # TODO: do something other than printing when collision occurs
+        #       change background image
+
 
         pygame.init()
         self.running = True
@@ -88,16 +90,23 @@ class Game:
 
         self.update_player_position()
 
+        self.screen.blit(self.background, (0,0)) # Order matters
+
+        # pygame.draw.rect(self.background, (150,150,150), self.player)
+
         for obstacle in self.platforms:
             obstacle.gravity(self.timedelta)
             self.reset(obstacle)
-            pygame.draw.rect(self.background, (30, 40, 50), obstacle)
+            # pygame.draw.rect(self.background, (30, 40, 50), obstacle)
+            self.screen.blit(obstacle.SPAM_IMAGE, (obstacle.x, obstacle.y))
 
 
+        # Draw player image
+        self.screen.blit(self.player.PLAYER_IMAGE, (self.player.x, self.player.y))
 
-        pygame.draw.rect(self.background, (30, 40, 50), self.player)
-        self.screen.blit(self.background, (0,0))
+        # Draw score
         self.screen.blit(score, (0,0))
+
 
         pygame.display.update()
 
@@ -134,7 +143,7 @@ class Game:
 
     # functions to create our resources
     def load_image(self, name, colorkey=None):
-        fullname = os.path.join(data_dir, name)
+        fullname = os.path.join(resources_dir, name)
         try:
             image = pygame.image.load(fullname)
         except pygame.error:
