@@ -172,14 +172,14 @@ class Game:
                 self.player.moving_left = True
             elif event.key == K_RIGHT:
                 self.player.moving_right = True
-            if event.key == K_UP:
+            if event.key == K_UP or event.key == K_SPACE:
                 self.player.jumping = True
         elif event.type == KEYUP:
             if event.key == K_LEFT:
                 self.player.moving_left = False
             elif event.key == K_RIGHT:
                 self.player.moving_right = False
-            if event.key == K_UP:
+            if event.key == K_UP or event.key == K_SPACE:
                 self.player.jumping = False
 
 
