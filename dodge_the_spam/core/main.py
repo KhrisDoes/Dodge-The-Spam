@@ -6,8 +6,11 @@ import platform
 import random
 
 
-core_dir = os.path.split(os.path.abspath(__file__))[0]
-resources_dir = os.path.join(core_dir, 'resources')
+base_dir = "/home/chris/dev-projects/DodgeTheSpam/dodge_the_spam"
+
+# core_dir = os.path.split(os.path.abspath(__file__))[0]
+
+resources_dir = os.path.join(base_dir, 'resources')
 
 class Game:
 
@@ -47,10 +50,15 @@ class Game:
         self.player = player.Player(self.WIDTH / 2, self.HEIGHT - 150, 30, 30)
 
         (player_image, player_image_rect) = self.load_image("player_icon.png")
-
+        (platform_image, platform_image_rect) = self.load_image("spam.png")
+        
         self.player.PLAYER_IMAGE = player_image
         self.player.PLAYER_IMAGE = pygame.transform.scale(self.player.PLAYER_IMAGE, (self.player.width, self.player.height))
         self.player.PLAYER_IMAGE_RECT = player_image_rect
+ 
+        platform.Platform.SPAM_IMAGE = platform_image
+        platform.Platform.SPAM_IMAGE = pygame.transform.scale(platform.Platform.SPAM_IMAGE, (50, 50))
+        platform.Platform.SPAM_IMAGE_RECT = platform_image_rect        
 
         self.screen.blit(self.background, (0,0))
 
@@ -196,7 +204,8 @@ class Game:
 
     # functions to create our resources
     def load_image(self, name, colorkey=None):
-        fullname = "resources/" + name
+        fullname = resources_dir + "/" + name
+        print(fullname)
         try:
             image = pygame.image.load(fullname)
         except pygame.error:
