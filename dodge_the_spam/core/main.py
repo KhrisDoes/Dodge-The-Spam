@@ -1,16 +1,27 @@
+#!/usr/bin/env python3
 import pygame, os
 from pygame.locals import *
 from pygame.compat import geterror
 import player
 import platform
 import random
+import sys
 
 
-base_dir = "/home/chris/dev-projects/DodgeTheSpam/dodge_the_spam"
+# core_path = os.path.dirname(os.path.realpath(__file__))
 
-# core_dir = os.path.split(os.path.abspath(__file__))[0]
+if getattr(sys, 'frozen', False):
+    # frozen
+    core_path = os.path.dirname(sys.executable)
+else:
+    # unfrozen
+    core_path = os.path.dirname(os.path.realpath(__file__))
 
-resources_dir = os.path.join(base_dir, 'resources')
+
+folders_path = os.path.normpath(core_path + os.sep + os.pardir )
+resources_dir = os.path.join(folders_path, "resources")
+core_dir = os.path.join(folders_path, "core")
+
 
 class Game:
 
@@ -28,8 +39,7 @@ class Game:
 
 
 
-        # TODO: do something other than printing when collision occurs
-        #       change background image
+        # TODO: change background image
 
 
         pygame.init()
@@ -204,8 +214,9 @@ class Game:
 
     # functions to create our resources
     def load_image(self, name, colorkey=None):
-        fullname = resources_dir + "/" + name
-        print(fullname)
+        # fullname = resources_dir + "/" + name
+        fullname = resources_dir + os.sep + name
+#        print(fullname)
         try:
             image = pygame.image.load(fullname)
         except pygame.error:
