@@ -7,6 +7,8 @@ import platform
 import random
 import sys
 
+import neat
+import pickle
 
 # core_path = os.path.dirname(os.path.realpath(__file__))
 
@@ -23,11 +25,22 @@ resources_dir = os.path.join(folders_path, "resources")
 core_dir = os.path.join(folders_path, "core")
 
 
+GENERATION = 0
+MAX_FITNESS = 0
+BEST_GENOME = 0
+FPS = 60
+
+
+
 class Game:
 
     WIDTH, HEIGHT = 0, 0
 
     def __init__(self, width, height):
+       pass
+
+
+    def init(self, width, height):
         self.WIDTH = width
         self.HEIGHT = height
         self.timedelta = 0
@@ -36,6 +49,7 @@ class Game:
         self.counting_time = 0
 
         self.HIGH_SCORE = 0
+        self.GENOME_SCORE = 0
 
 
 
@@ -85,17 +99,19 @@ class Game:
             self.platforms[i] = platform.Platform(random.randint(0, self.WIDTH), random.randint(-350, 0), 50, 50)
 
     def move_left(self):
-        self.player.x -= self.player.xSpeed * self.timedelta
+        self.player.x -= self.player.xSpeed * self.timedelta * 2
 
     def move_right(self):
-        self.player.x += self.player.xSpeed * self.timedelta
+        self.player.x += self.player.xSpeed * self.timedelta * 2
 
     def jump(self):
-        self.player.y -= self.player.ySpeed * 2 * self.timedelta
+        self.player.y -= self.player.ySpeed * 2 * self.timedelta * 2
 
+    def move_down(self):
+        self.player.y += self.player.ySpeed * 2 * self.timedelta * 2
 
     def gravity(self, rect):
-        rect.y += rect.ySpeed * self.timedelta
+        rect.y += rect.ySpeed * self.timedelta * 2
 
 
     def update_player_position(self):
@@ -106,12 +122,17 @@ class Game:
 
         if self.player.jumping:
             self.jump()
+        elif self.player.moving_down:
+            self.move_down()
 
         self.gravity(self.player)
 
+        x = 0
         if self.player.y > self.HEIGHT or self.player.y < 0 or self.player.x < 0 or self.player.x > self.WIDTH:
-            self.restart()
+            x = float(self.counting_seconds)
+            self.GENOME_SCORE -= 120
 
+        return x 
 
 
 
@@ -123,18 +144,21 @@ class Game:
 
         self.start_time = pygame.time.get_ticks()
         self.counting_time = pygame.time.get_ticks() - self.start_time
-        self.timedelta = self.clock.tick(60)
+        self.timedelta = self.clock.tick(FPS)
         self.timedelta /= 1000
         self.player.x = self.WIDTH / 2
         self.player.y = self.HEIGHT - 150
         self.reset_platforms()
-
+        self.GENOME_SCORE = 0
 
 
 
     def on_collision(self, platform):
+        x = 0
         if self.player.colliderect(platform):
-            self.restart()
+            x = float(self.counting_seconds)
+            # self.restart()
+        return x
 
 
     def on_render(self):
@@ -146,7 +170,7 @@ class Game:
         score = self.basic_font.render("Score: " + counting_string, True, (255, 0, 0), (255,255,255))
 
 
-        self.update_player_position()
+
 
         self.screen.blit(self.background, (0,0)) # Order matters
 
@@ -192,6 +216,9 @@ class Game:
                 self.player.moving_right = True
             if event.key == K_UP or event.key == K_SPACE:
                 self.player.jumping = True
+            elif event.key == K_DOWN:
+                self.player.moving_down = True
+
         elif event.type == KEYUP:
             if event.key == K_LEFT:
                 self.player.moving_left = False
@@ -199,6 +226,8 @@ class Game:
                 self.player.moving_right = False
             if event.key == K_UP or event.key == K_SPACE:
                 self.player.jumping = False
+            elif event.key == K_DOWN:
+                self.player.moving_down = False
 
 
 
@@ -207,10 +236,17 @@ class Game:
         pass
 
 
+    def has_platform_passed_player(self, platform):
+        if platform.y < self.player.y:
+            if platform.passed_player == False:
+                platform.passed_player = True
+                self.GENOME_SCORE += 10
+
     def reset(self, platform):
         if platform.y > self.HEIGHT:
             platform.y = -15
             platform.x = random.randint(0, self.WIDTH)
+            # GENOME_SCORE += 1
 
     # functions to create our resources
     def load_image(self, name, colorkey=None):
@@ -229,34 +265,90 @@ class Game:
             image.set_colorkey(colorkey, RLEACCEL)
         return image, image.get_rect()
 
+    def eval_genomes(self, genomes, config):
+        i = 0
+        global GENERATION, MAX_FITNESS, BEST_GENOME
+        GENERATION = GENERATION + 1
+        for genome_id, genome in genomes:
+            genome.fitness = self.main(genome, config)
 
-    def main(self):
+            print("Gen : %d Genome # : %d  Fitness : %f Max Fitness : %f"%(GENERATION,i,genome.fitness, MAX_FITNESS))
+            if genome.fitness >= MAX_FITNESS:
+                MAX_FITNESS = genome.fitness
+                BEST_GENOME = genome
+            self.GENOME_SCORE = 0
+            i+=1
 
+    def main(self, genome, config):
+
+        self.init(800, 600)
+        net = neat.nn.FeedForwardNetwork.create(genome, config)
         self.start_time = pygame.time.get_ticks()
 
         while self.running:
             self.counting_time = pygame.time.get_ticks() - self.start_time
-            self.timedelta = self.clock.tick(60)
+            self.timedelta = self.clock.tick(FPS)
             self.timedelta /= 1000
+            inputs = ()
+            for platform in self.platforms:
+                inputs = inputs + (platform.x, platform.y)
+                self.has_platform_passed_player(platform)
+            inputs = inputs + (self.player.x, self.player.y)
 
             # Check for collisions
             for platform in self.platforms:
-                self.on_collision(platform)
+                x = self.on_collision(platform)
+                if x != 0:
+                    print("x = ", x, ", genome_score = " , self.GENOME_SCORE)
+                    return x / 10 + self.GENOME_SCORE 
 
+            x = self.update_player_position()
+
+            if x != 0:
+                print("x = ", x, ", genome_score = " , self.GENOME_SCORE)
+                return x / 10 + self.GENOME_SCORE
+
+            output = net.activate(inputs)
+#            print("Output: ", output)
             # Handle events
-            for event in pygame.event.get():
-                self.on_event(event)
+#            for event in pygame.event.get():
+#                self.on_event(event)
+
+            if output[0] >= 0.5:
+                self.jump()
+            elif output[1] >= 0.5:
+                self.move_left()
+            if output[2] >= 0.5:
+                self.move_right()
+            if output[3] >= 0.5:
+                self.move_down() 
 
             self.counting_seconds = str((self.counting_time % 60000) / 1000).zfill(2)
             self.on_render()
+#            self.clock.tick(FPS)
 
 
         print("Highest score:", self.HIGH_SCORE, sep=' ')
         pygame.quit()
 
+    def run(self):
+        config = neat.Config(neat.DefaultGenome, neat.DefaultReproduction,
+                         neat.DefaultSpeciesSet, neat.DefaultStagnation,
+                         'config')
+        pop = neat.Population(config)
+        stats = neat.StatisticsReporter()
+        pop.add_reporter(stats)
+        winner = pop.run(self.eval_genomes, 1000)
+        outputFile = "bestGenome/winner.p"
+        with open(outputFile, 'wb') as pickle_file:
+            pickle.dump(all, pickle_file)
+
 
 if __name__ == "__main__":
     game = Game(800, 600)
-    game.main()
+    game.run()
+
+
+
 
 

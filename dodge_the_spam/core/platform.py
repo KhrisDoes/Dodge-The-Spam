@@ -10,6 +10,7 @@ class Platform(pygame.Rect):
 
     def __init__(self, x, y, width, height):
         super().__init__(x, y, width, height)
+        self.passed_player = False
 
         
        #  self.SPAM_IMAGE = pygame.image.load(os.path.join("../resources/spam.png")).convert()

@@ -19,6 +19,10 @@ class Player(pygame.Rect):
 
         self.moving_left = False
         self.moving_right = False
+
+	# Experimental
+        self.moving_down = False
+
         self.jumping = False
 
 
