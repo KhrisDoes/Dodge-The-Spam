@@ -54,7 +54,7 @@ class Game:
 
 
         # TODO: change background image
-
+        #       GENOME_SCORE is not working properly          
 
         pygame.init()
         self.running = True
@@ -130,7 +130,7 @@ class Game:
         x = 0
         if self.player.y > self.HEIGHT or self.player.y < 0 or self.player.x < 0 or self.player.x > self.WIDTH:
             x = float(self.counting_seconds)
-            self.GENOME_SCORE -= 120
+            self.GENOME_SCORE -= 1000
 
         return x 
 
@@ -170,22 +170,16 @@ class Game:
         score = self.basic_font.render("Score: " + counting_string, True, (255, 0, 0), (255,255,255))
 
 
-
-
         self.screen.blit(self.background, (0,0)) # Order matters
 
         # Speed up player
         # self.player.xSpeed += float(counting_string)
 
 
-
-
-
-
         for obstacle in self.platforms:
 
             # Speed up obstacle
-            obstacle.ySpeed += float(counting_string) / 10
+            # obstacle.ySpeed += float(counting_string) / 10 Too hard for the AI currently, tryng to train it in simpler environments
 
             obstacle.gravity(self.timedelta)
 
@@ -237,15 +231,18 @@ class Game:
 
 
     def has_platform_passed_player(self, platform):
-        if platform.y < self.player.y:
+        if platform.y > self.player.y:
+#            print("PASSED")
             if platform.passed_player == False:
                 platform.passed_player = True
                 self.GENOME_SCORE += 10
+
 
     def reset(self, platform):
         if platform.y > self.HEIGHT:
             platform.y = -15
             platform.x = random.randint(0, self.WIDTH)
+            platform.passed_player = False
             # GENOME_SCORE += 1
 
     # functions to create our resources
@@ -284,17 +281,23 @@ class Game:
         self.init(800, 600)
         net = neat.nn.FeedForwardNetwork.create(genome, config)
         self.start_time = pygame.time.get_ticks()
-
+        #distances = []
         while self.running:
             self.counting_time = pygame.time.get_ticks() - self.start_time
             self.timedelta = self.clock.tick(FPS)
             self.timedelta /= 1000
-            inputs = ()
+            inputs = []
             for platform in self.platforms:
-                inputs = inputs + (platform.x, platform.y)
+                inputs.append(platform.x)
+                inputs.append(platform.y)
                 self.has_platform_passed_player(platform)
-            inputs = inputs + (self.player.x, self.player.y)
-
+                #plat_x = (platform.x + platform.width ) / 2
+                #plat_y = (platform.y + platform.height) / 2
+                # distances.append()
+            inputs.append(self.player.x)
+            inputs.append(self.player.y)
+            print(inputs)
+            x = 0
             # Check for collisions
             for platform in self.platforms:
                 x = self.on_collision(platform)
@@ -310,9 +313,6 @@ class Game:
 
             output = net.activate(inputs)
 #            print("Output: ", output)
-            # Handle events
-#            for event in pygame.event.get():
-#                self.on_event(event)
 
             if output[0] >= 0.5:
                 self.jump()
@@ -338,7 +338,7 @@ class Game:
         pop = neat.Population(config)
         stats = neat.StatisticsReporter()
         pop.add_reporter(stats)
-        winner = pop.run(self.eval_genomes, 1000)
+        winner = pop.run(self.eval_genomes, 2)
         outputFile = "bestGenome/winner.p"
         with open(outputFile, 'wb') as pickle_file:
             pickle.dump(all, pickle_file)

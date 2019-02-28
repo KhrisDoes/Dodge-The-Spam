@@ -93,6 +93,9 @@ class Game:
     def jump(self):
         self.player.y -= self.player.ySpeed * 2 * self.timedelta
 
+    def move_down(self):
+        self.player.y += self.player.ySpeed * self.timedelta * 2
+
 
     def gravity(self, rect):
         rect.y += rect.ySpeed * self.timedelta
@@ -106,6 +109,8 @@ class Game:
 
         if self.player.jumping:
             self.jump()
+        elif self.player.moving_down:
+            self.move_down()
 
         self.gravity(self.player)
 
@@ -192,6 +197,8 @@ class Game:
                 self.player.moving_right = True
             if event.key == K_UP or event.key == K_SPACE:
                 self.player.jumping = True
+            elif event.key == K_DOWN:
+                self.player.moving_down = True
         elif event.type == KEYUP:
             if event.key == K_LEFT:
                 self.player.moving_left = False
@@ -199,9 +206,8 @@ class Game:
                 self.player.moving_right = False
             if event.key == K_UP or event.key == K_SPACE:
                 self.player.jumping = False
-
-
-
+            elif event.key == K_DOWN:
+                self.player.moving_down = False
 
     def on_loop(self):
         pass
